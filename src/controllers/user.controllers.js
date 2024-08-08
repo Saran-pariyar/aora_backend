@@ -6,7 +6,6 @@ import { ApiError } from "../utils/ApiError.js";
 const registerUser = asyncHandler(async(req, res)=>{
 
     const { email, username, password } = req.body
-    console.log("Request Body:", req.body);
 
 
     if (
@@ -51,7 +50,34 @@ const user = await User.create({
         new ApiResponse(200, createdUser, "User registered successfully")
   
      )
+})
+
+const loginUser = asyncHandler(async(req, res)=>{
+
+   const {email, password} = req.body
+
+   if( !(email && password) ){
+      throw new ApiError(400, "Both email and password are required")
+   }
+
+   //if user exist or not
+   const existedUser = await User.findOne({ email })
+   if(!existedUser){
+      throw new ApiError(404, "User does not exist")
+   }
+
+   const isPasswordValid = await existedUser.isPasswordCorrect(password)
+
+   if(!isPasswordValid){
+      throw new ApiError(401, "Invalid user credentials")
+   }
+
+   const loggedInUser = await User.findById(existedUser._id).select("-password -refreshToken")
+
+   return res.status(200).json(
+      new ApiResponse(200, {user: loggedInUser}, "User logged in Successfully")
+   )
 
 })
 
-export {registerUser}
+export {registerUser, loginUser}
